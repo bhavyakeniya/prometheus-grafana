@@ -1,0 +1,66 @@
+version: "2.4"
+
+networks:
+  net:
+    driver: overlay
+
+services:
+  grafana:
+    build:
+      context: ./grafana
+    container_name: grafana
+    networks:
+      - net
+    environment:
+      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana:/var/lib/grafana
+
+  alertmanager:
+    build:
+      context: ./alertmanager
+    container_name: alertmanager
+    networks:
+      - net
+    environment:
+      - SLACK_URL=
+    volumes:
+      - alertmanager:/alertmanager
+
+  unsee:
+    image: cloudflare/unsee:v0.9.2
+    networks:
+      - net
+    environment:
+      - "ALERTMANAGER_URIS=default:http://alertmanager:9093"
+
+  prometheus:
+    build:
+      context: ./prometheus
+    container_name: prometheus
+    networks:
+      - net
+    volumes:
+      - prometheus:/prometheus
+
+  caddy:
+    build:
+      context: ./caddy
+    container_name: caddy
+    ports:
+      - "9091:9091"
+      - "9090:9090"
+      - "9093:9093"
+      - "9094:9094"
+    networks:
+      - net
+    environment:
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+
+volumes:
+  prometheus:
+  grafana:
+  alertmanager:
